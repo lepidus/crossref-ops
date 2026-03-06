@@ -24,11 +24,11 @@ msgid "plugins.importexport.crossref.requirements.satisfied"
 msgstr "Todos os requisitos do plugin foram atendidos."
 
 msgid "plugins.generic.crossref.displayName"
-msgstr "Plugin de Gestão CrossRef"
+msgstr "Plugin de Gestão Crossref"
 
 msgid "plugins.importexport.crossref.settings.depositorIntro"
 msgstr ""
-"Os seguintes itens são necessários para um depósito bem sucedido na CrossRef."
+"Os seguintes itens são necessários para um depósito bem sucedido na Crossref."
 
 msgid "plugins.importexport.crossref.settings.form.depositorName"
 msgstr "Nome do depositante"
@@ -78,7 +78,7 @@ msgid "plugins.importexport.crossref.action.markRegistered"
 msgstr "Marcar ativo"
 
 msgid "plugins.importexport.crossref.senderTask.name"
-msgstr "Tarefa de registo automático da CrossRef"
+msgstr "Tarefa de registo automático da Crossref"
 
 msgid "plugins.importexport.crossref.register.error.mdsError"
 msgstr ""
@@ -157,7 +157,7 @@ msgstr ""
 
 msgid "plugins.importexport.crossref.settings.form.automaticRegistration.description"
 msgstr ""
-"O OPS depositará os DOIs atribuídos automaticamente na CrossRef. Note que "
+"O OPS depositará os DOIs atribuídos automaticamente na Crossref. Note que "
 "isso pode demorar um pequeno período de tempo após a publicação para ser "
 "processado (por exemplo, dependendo da sua configuração do cronjob). Poderá "
 "verificar todos os DOIs não registados."
@@ -179,7 +179,7 @@ msgstr ""
 
 msgid "plugins.importexport.crossref.settings.form.testMode.description"
 msgstr ""
-"Use a API de teste da CrossRef (ambiente de teste) para depositar o DOI. Não "
+"Use a API de teste da Crossref (ambiente de teste) para depositar o DOI. Não "
 "se esqueça de remover esta opção em produção."
 
 msgid "plugins.importexport.crossref.cliUsage"

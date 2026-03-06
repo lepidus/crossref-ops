@@ -89,6 +89,12 @@ msgstr ""
 "Valide o XML. Use esta opção para o download do XML para o registro manual "
 "do DOI."
 
+msgid "plugins.importexport.crossref.settings.form.updatePolicy"
+msgstr "DOI da Política de Atualização"
+
+msgid "plugins.importexport.crossref.settings.form.updatePolicy.description"
+msgstr "O DOI da política de atualização do servidor é necessário quando um DOI único é usado para cada versão de um preprint."
+
 msgid "plugins.importexport.crossref.settings.form.testMode.description"
 msgstr ""
 "Use a API de teste Crossref (ambiente de teste) para o depósito DOI. Por "

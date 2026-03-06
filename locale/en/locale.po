@@ -91,6 +91,12 @@ msgstr "Test mode is enabled. Please check that your Crossref test API credentia
 msgid "plugins.importexport.crossref.settings.form.validation"
 msgstr "Validate XML. Use this option for the XML download for the manual DOI registration."
 
+msgid "plugins.importexport.crossref.settings.form.updatePolicy"
+msgstr "Update Policy DOI"
+
+msgid "plugins.importexport.crossref.settings.form.updatePolicy.description"
+msgstr "Server's update policy DOI is required when a unique DOI is used for every version of an preprint."
+
 msgid "plugins.importexport.crossref.issues.description"
 msgstr "Note: Only issues (and not their preprints) will be considered for export/registration here."
 

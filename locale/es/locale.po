@@ -54,6 +54,12 @@ msgstr ""
 "Validar XML. Use esta opción para descargar el XML y realizar el registro "
 "manual del DOI."
 
+msgid "plugins.importexport.crossref.settings.form.updatePolicy"
+msgstr "DOI de la Política de Actualización"
+
+msgid "plugins.importexport.crossref.settings.form.updatePolicy.description"
+msgstr "El DOI de la política de actualización del servidor es necesario cuando se utiliza un DOI único para cada versión de un preprint."
+
 msgid "plugins.importexport.crossref.issues.description"
 msgstr ""
 "Nota: Solo los números (y no sus artículos) se toman en consideración para "
