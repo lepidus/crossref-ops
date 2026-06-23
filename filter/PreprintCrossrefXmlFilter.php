@@ -18,13 +18,17 @@ use APP\core\Application;
 use APP\core\Request;
 use APP\plugins\generic\crossref\CrossrefExportDeployment;
 use APP\publication\Publication;
+use PKP\context\Context;
 use DOMDocument;
 use PKP\core\Dispatcher;
 use PKP\i18n\LocaleConversion;
 use PKP\submission\PKPSubmission;
+use Illuminate\Support\Enumerable;
 
 class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\NativeExportFilter
 {
+    private bool $doiVersioningEnabled;
+
     /**
      * Constructor
      *
@@ -66,15 +70,30 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         $bodyNode = $doc->createElementNS($deployment->getNamespace(), 'body');
         $rootNode->appendChild($bodyNode);
 
+        $this->doiVersioningEnabled = (bool) ($context->getData(Context::SETTING_DOI_VERSIONING) ?? true);
         foreach ($pubObjects as $pubObject) {
-            $publications = $pubObject->getData('publications')->toArray();
-            // Use array reverse so that the latest version of the submission is first in the xml output and the DOI relations do not cause an error with Crossref
-            $publications = array_reverse($publications, true);
-            foreach ($publications as $publication) {
-                if ($publication->getDoi() && $publication->getData('status') === PKPSubmission::STATUS_PUBLISHED) {
-                    $postedContentNode = $this->createPostedContentNode($doc, $publication, $pubObject);
-                    $bodyNode->appendChild($postedContentNode);
+            $publications = [];
+
+            if (!$this->doiVersioningEnabled) {
+                $publication = $pubObject->getCurrentPublication();
+                if (
+                    $publication->getDoi() &&
+                    $publication->getData('status') == Publication::STATUS_PUBLISHED
+                ) {
+                    $publications = [$pubObject->getCurrentPublication()];
                 }
+            } else {
+                $latestMinorPublications = $this->getLatestMinorPublications($pubObject->getData('publications'));
+                foreach ($latestMinorPublications as $versionStage) {
+                    foreach ($versionStage as $publication) {
+                        $publications[] = $publication;
+                    }
+                }
+            }
+
+            foreach ($publications as $publication) {
+                $postedContentNode = $this->createPostedContentNode($doc, $publication, $pubObject);
+                $bodyNode->appendChild($postedContentNode);
             }
         }
         return $doc;
@@ -83,6 +102,39 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
     //
     // Submission conversion functions
     //
+
+    /**
+     * Get the publications that can be exported/deposited.
+     * Only the last minor versions are considered.
+     */
+    protected function getLatestMinorPublications(Enumerable $publications): array
+    {
+        $latestMinorPublications = [];
+        foreach ($publications as $publication) {
+            if (
+                !$publication->getDoi() ||
+                $publication->getData('status') != Publication::STATUS_PUBLISHED
+            ) {
+
+                continue;
+            }
+
+            $versionStage = $publication->getData('versionStage');
+            $versionMajor = $publication->getData('versionMajor');
+            $versionMinor = $publication->getData('versionMinor');
+            if (!array_key_exists($versionStage, $latestMinorPublications)) {
+                $latestMinorPublications[$versionStage] = [];
+            }
+            if (!array_key_exists($versionMajor, $latestMinorPublications[$versionStage])) {
+                $latestMinorPublications[$versionStage][$versionMajor] = $publication;
+                continue;
+            }
+            if ($versionMinor > $latestMinorPublications[$versionStage][$versionMajor]->getData('versionMinor')) {
+                $latestMinorPublications[$versionStage][$versionMajor] = $publication;
+            }
+        }
+        return $latestMinorPublications;
+    }
 
     /**
      * Create and return the root node 'doi_batch'.
@@ -182,7 +234,6 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
                     $personNameNode->setAttribute('language', \Locale::getPrimaryLanguage($locale));
                     $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'given_name', htmlspecialchars($givenNames[$locale], ENT_COMPAT, 'UTF-8')));
                     $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($familyNames[$locale], ENT_COMPAT, 'UTF-8')));
-
                 } else {
                     $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($givenNames[$locale], ENT_COMPAT, 'UTF-8')));
                 }
@@ -256,7 +307,7 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
         // abstract
         $abstracts = $publication->getData('abstract') ?: [];
-        foreach($abstracts as $lang => $abstract) {
+        foreach ($abstracts as $lang => $abstract) {
             $abstractNode = $doc->createElementNS($deployment->getJATSNamespace(), 'jats:abstract');
             $abstractNode->setAttributeNS($deployment->getXMLNamespace(), 'xml:lang', LocaleConversion::toBcp47($lang));
             $abstractNode->appendChild($doc->createElementNS($deployment->getJATSNamespace(), 'jats:p', htmlspecialchars(html_entity_decode(strip_tags($abstract), ENT_COMPAT, 'UTF-8'), ENT_COMPAT, 'utf-8')));
@@ -289,7 +340,11 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
         // DOI data
         $dispatcher = $this->_getDispatcher($request);
-        $url = $dispatcher->url($request, Application::ROUTE_PAGE, null, 'preprint', 'view', [$submission->getCurrentPublication()->getData('urlPath') ?? $submission->getId(), 'version', $publication->getId()], null, null, true, '');
+        if ($this->doiVersioningEnabled) {
+            $url = $dispatcher->url($request, Application::ROUTE_PAGE, null, 'preprint', 'view', [$submission->getCurrentPublication()->getData('urlPath') ?? $submission->getId(), 'version', $publication->getId()], null, null, true, '');
+        } else {
+            $url = $dispatcher->url($request, Application::ROUTE_PAGE, null, 'preprint', 'view', [$submission->getCurrentPublication()->getData('urlPath') ?? $submission->getId()], null, null, true, '');
+        }
         $postedContentNode->appendChild($this->createDOIDataNode($doc, $publication->getDoi(), $url));
 
         return $postedContentNode;
