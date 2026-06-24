@@ -114,7 +114,6 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
                 !$publication->getDoi() ||
                 $publication->getData('status') != Publication::STATUS_PUBLISHED
             ) {
-
                 continue;
             }
 
@@ -247,20 +246,12 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
             $postedContentNode->appendChild($licenseNode);
         }
 
-        // DOI relations: if this version has a vorDoi or different DOI than the current publication (i.e. versions and DOI versioning exits), add a relation node
-        $parentDoi = $submission->getCurrentPublication()->getDoi() && $submission->getCurrentPublication()->getDoi() != $publication->getDoi() ? $submission->getCurrentPublication()->getDoi() : '';
-        $vorDoi = $publication->getData('vorDoi') ? $publication->getData('vorDoi') : '';
+        if ($this->doiVersioningEnabled && $this->versionsDois) {
+            // crossmark updates
+            $this->appendCrossmarkNode($doc, $postedContentNode, $publication->getData('datePublished'));
 
-        if ($parentDoi || $vorDoi) {
-            $relationsDataNode = $doc->createElementNS($deployment->getRELNamespace(), 'rel:program');
-            $relationsDataNode->setAttribute('name', 'relations');
-            if ($parentDoi) {
-                $relationsDataNode->appendChild($this->createParentDoiNode($doc, $parentDoi));
-            }
-            if ($vorDoi) {
-                $relationsDataNode->appendChild($this->createVorDoiNode($doc, $vorDoi));
-            }
-            $postedContentNode->appendChild($relationsDataNode);
+            // rel:program
+            $this->appendRelationships($doc, $postedContentNode, $publication);
         }
 
         // DOI data
@@ -399,6 +390,45 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         $doiDataNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'doi', htmlspecialchars($doi, ENT_COMPAT, 'UTF-8')));
         $doiDataNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'resource', htmlspecialchars($url, ENT_COMPAT, 'UTF-8')));
         return $doiDataNode;
+    }
+
+    public function appendCrossmarkNode($doc, $parentNode, $datePublished)
+    {
+        $deployment = $this->getDeployment();
+        $context = $deployment->getContext();
+        $plugin = $deployment->getPlugin();
+
+        $crossmarkPolicyDoi = $plugin->getSetting($context->getId(), 'updatePolicyDoi');
+        $crossmarkNode = $doc->createElementNS($deployment->getNamespace(), 'crossmark');
+        $crossmarkNode->appendChild($node = $doc->createElementNS($deployment->getNamespace(), 'crossmark_policy', htmlspecialchars($crossmarkPolicyDoi, ENT_COMPAT, 'UTF-8')));
+        $updatesNode = $doc->createElementNS($deployment->getNamespace(), 'updates');
+        foreach ($this->versionsDois as $versionDoi) {
+            $updateNode = $doc->createElementNS($deployment->getNamespace(), 'update', htmlspecialchars($versionDoi, ENT_COMPAT, 'UTF-8'));
+            $updateNode->setAttribute('type', 'new_version');
+            $updateNode->setAttribute('date', $datePublished);
+            $updatesNode->appendChild($updateNode);
+        }
+        $crossmarkNode->appendChild($updatesNode);
+        $parentNode->appendChild($crossmarkNode);
+    }
+
+    public function appendRelationships($doc, $parentNode, $publication)
+    {
+        $deployment = $this->getDeployment();
+
+        $programNode = $doc->createElementNS($deployment->getRelNamespace(), 'rel:program');
+        $programNode->setAttribute('name', 'relations');
+
+        foreach ($this->versionsDois as $versionDoi) {
+            $programNode->appendChild($this->createParentDoiNode($doc, $versionDoi));
+        }
+
+        $vorDoi = $publication->getData('vorDoi') ? $publication->getData('vorDoi') : '';
+        if ($vorDoi) {
+            $programNode->appendChild($this->createVorDoiNode($doc, $vorDoi));
+        }
+
+        $parentNode->appendChild($programNode);
     }
 
     /**
