@@ -28,6 +28,7 @@ use Illuminate\Support\Enumerable;
 class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\NativeExportFilter
 {
     private bool $doiVersioningEnabled;
+    private array $versionsDois = [];
 
     /**
      * Constructor
@@ -72,7 +73,7 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
         $this->doiVersioningEnabled = (bool) ($context->getData(Context::SETTING_DOI_VERSIONING) ?? true);
         foreach ($pubObjects as $pubObject) {
-            $publications = [];
+            $this->versionsDois = [];
 
             if (!$this->doiVersioningEnabled) {
                 $publication = $pubObject->getCurrentPublication();
@@ -80,20 +81,18 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
                     $publication->getDoi() &&
                     $publication->getData('status') == Publication::STATUS_PUBLISHED
                 ) {
-                    $publications = [$pubObject->getCurrentPublication()];
+                    $postedContentNode = $this->createPostedContentNode($doc, $publication, $pubObject);
+                    $bodyNode->appendChild($postedContentNode);
                 }
             } else {
                 $latestMinorPublications = $this->getLatestMinorPublications($pubObject->getData('publications'));
                 foreach ($latestMinorPublications as $versionStage) {
                     foreach ($versionStage as $publication) {
-                        $publications[] = $publication;
+                        $postedContentNode = $this->createPostedContentNode($doc, $publication, $pubObject);
+                        $bodyNode->appendChild($postedContentNode);
+                        $this->versionsDois[] = $publication->getDoi();
                     }
                 }
-            }
-
-            foreach ($publications as $publication) {
-                $postedContentNode = $this->createPostedContentNode($doc, $publication, $pubObject);
-                $bodyNode->appendChild($postedContentNode);
             }
         }
         return $doc;
