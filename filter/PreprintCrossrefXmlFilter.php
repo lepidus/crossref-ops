@@ -214,81 +214,7 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         // contributors
         $authors = $publication->getData('authors');
         if ($authors->count() != 0) {
-            $contributorsNode = $doc->createElementNS($deployment->getNamespace(), 'contributors');
-
-            $isFirst = true;
-            foreach ($authors as $author) {
-                $personNameNode = $doc->createElementNS($deployment->getNamespace(), 'person_name');
-                $personNameNode->setAttribute('contributor_role', 'author');
-                if ($isFirst) {
-                    $personNameNode->setAttribute('sequence', 'first');
-                } else {
-                    $personNameNode->setAttribute('sequence', 'additional');
-                }
-
-                $familyNames = $author->getFamilyName(null);
-                $givenNames = $author->getGivenName(null);
-
-                // Check if both givenName and familyName is set for the submission language.
-                if (!empty($familyNames[$locale]) && !empty($givenNames[$locale])) {
-                    $personNameNode->setAttribute('language', \Locale::getPrimaryLanguage($locale));
-                    $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'given_name', htmlspecialchars($givenNames[$locale], ENT_COMPAT, 'UTF-8')));
-                    $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($familyNames[$locale], ENT_COMPAT, 'UTF-8')));
-                } else {
-                    $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($givenNames[$locale], ENT_COMPAT, 'UTF-8')));
-                }
-
-                $affiliations = $author->getAffiliations();
-                if (count($affiliations) > 0) {
-                    $affiliationsNode = $doc->createElementNS($deployment->getNamespace(), 'affiliations');
-                    foreach ($affiliations as $affiliation) {
-                        $institutionNode = $doc->createElementNS($deployment->getNamespace(), 'institution');
-                        $institutionNameNode = $doc->createElementNS($deployment->getNamespace(), 'institution_name', htmlspecialchars($affiliation->getLocalizedName($locale), ENT_COMPAT, 'UTF-8'));
-                        $institutionNode->appendChild($institutionNameNode);
-                        $rorId = $affiliation->getRor();
-                        if ($rorId) {
-                            $institutionIdNode = $doc->createElementNS($deployment->getNamespace(), 'institution_id', $rorId);
-                            $institutionIdNode->setAttribute('type', 'ror');
-                            $institutionNode->appendChild($institutionIdNode);
-                        }
-                        $affiliationsNode->appendChild($institutionNode);
-                    }
-                    $personNameNode->appendChild($affiliationsNode);
-                }
-
-                if ($author->getData('orcid')) {
-                    $orcidNode = $doc->createElementNS($deployment->getNamespace(), 'ORCID', $author->getData('orcid'));
-                    $orcidAuthenticated = $author->getData('orcidIsVerified') ? 'true' : 'false';
-                    $orcidNode->setAttribute('authenticated', $orcidAuthenticated);
-                    $personNameNode->appendChild($orcidNode);
-                }
-
-                if (!empty($familyNames[$locale]) && !empty($givenNames[$locale])) {
-                    $hasAltName = false;
-                    foreach ($familyNames as $otherLocal => $familyName) {
-                        if ($otherLocal != $locale && isset($familyName) && !empty($familyName)) {
-                            if (!$hasAltName) {
-                                $altNameNode = $doc->createElementNS($deployment->getNamespace(), 'alt-name');
-                                $personNameNode->appendChild($altNameNode);
-                                $hasAltName = true;
-                            }
-
-                            $nameNode = $doc->createElementNS($deployment->getNamespace(), 'name');
-                            $nameNode->setAttribute('language', \Locale::getPrimaryLanguage($otherLocal));
-
-                            $nameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($familyName, ENT_COMPAT, 'UTF-8')));
-                            if (isset($givenNames[$otherLocal]) && !empty($givenNames[$otherLocal])) {
-                                $nameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'given_name', htmlspecialchars($givenNames[$otherLocal], ENT_COMPAT, 'UTF-8')));
-                            }
-
-                            $altNameNode->appendChild($nameNode);
-                        }
-                    }
-                }
-
-                $contributorsNode->appendChild($personNameNode);
-                $isFirst = false;
-            }
+            $contributorsNode = $this->createContributorsNode($doc, $publication);
             $postedContentNode->appendChild($contributorsNode);
         }
 
@@ -348,6 +274,91 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         $postedContentNode->appendChild($this->createDOIDataNode($doc, $publication->getDoi(), $url));
 
         return $postedContentNode;
+    }
+
+    public function createContributorsNode($doc, $publication)
+    {
+        $deployment = $this->getDeployment();
+        $authors = $publication->getData('authors');
+        $locale = $publication->getData('locale');
+
+        $contributorsNode = $doc->createElementNS($deployment->getNamespace(), 'contributors');
+
+        $isFirst = true;
+        foreach ($authors as $author) {
+            $personNameNode = $doc->createElementNS($deployment->getNamespace(), 'person_name');
+            $personNameNode->setAttribute('contributor_role', 'author');
+            if ($isFirst) {
+                $personNameNode->setAttribute('sequence', 'first');
+            } else {
+                $personNameNode->setAttribute('sequence', 'additional');
+            }
+
+            $familyNames = $author->getFamilyName(null);
+            $givenNames = $author->getGivenName(null);
+
+            // Check if both givenName and familyName is set for the submission language.
+            if (!empty($familyNames[$locale]) && !empty($givenNames[$locale])) {
+                $personNameNode->setAttribute('language', \Locale::getPrimaryLanguage($locale));
+                $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'given_name', htmlspecialchars($givenNames[$locale], ENT_COMPAT, 'UTF-8')));
+                $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($familyNames[$locale], ENT_COMPAT, 'UTF-8')));
+            } else {
+                $personNameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($givenNames[$locale], ENT_COMPAT, 'UTF-8')));
+            }
+
+            $affiliations = $author->getAffiliations();
+            if (count($affiliations) > 0) {
+                $affiliationsNode = $doc->createElementNS($deployment->getNamespace(), 'affiliations');
+                foreach ($affiliations as $affiliation) {
+                    $institutionNode = $doc->createElementNS($deployment->getNamespace(), 'institution');
+                    $institutionNameNode = $doc->createElementNS($deployment->getNamespace(), 'institution_name', htmlspecialchars($affiliation->getLocalizedName($locale), ENT_COMPAT, 'UTF-8'));
+                    $institutionNode->appendChild($institutionNameNode);
+                    $rorId = $affiliation->getRor();
+                    if ($rorId) {
+                        $institutionIdNode = $doc->createElementNS($deployment->getNamespace(), 'institution_id', $rorId);
+                        $institutionIdNode->setAttribute('type', 'ror');
+                        $institutionNode->appendChild($institutionIdNode);
+                    }
+                    $affiliationsNode->appendChild($institutionNode);
+                }
+                $personNameNode->appendChild($affiliationsNode);
+            }
+
+            if ($author->getData('orcid')) {
+                $orcidNode = $doc->createElementNS($deployment->getNamespace(), 'ORCID', $author->getData('orcid'));
+                $orcidAuthenticated = $author->getData('orcidIsVerified') ? 'true' : 'false';
+                $orcidNode->setAttribute('authenticated', $orcidAuthenticated);
+                $personNameNode->appendChild($orcidNode);
+            }
+
+            if (!empty($familyNames[$locale]) && !empty($givenNames[$locale])) {
+                $hasAltName = false;
+                foreach ($familyNames as $otherLocal => $familyName) {
+                    if ($otherLocal != $locale && isset($familyName) && !empty($familyName)) {
+                        if (!$hasAltName) {
+                            $altNameNode = $doc->createElementNS($deployment->getNamespace(), 'alt-name');
+                            $personNameNode->appendChild($altNameNode);
+                            $hasAltName = true;
+                        }
+
+                        $nameNode = $doc->createElementNS($deployment->getNamespace(), 'name');
+                        $nameNode->setAttribute('language', \Locale::getPrimaryLanguage($otherLocal));
+
+                        $nameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'surname', htmlspecialchars($familyName, ENT_COMPAT, 'UTF-8')));
+                        if (isset($givenNames[$otherLocal]) && !empty($givenNames[$otherLocal])) {
+                            $nameNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'given_name', htmlspecialchars($givenNames[$otherLocal], ENT_COMPAT, 'UTF-8')));
+                        }
+
+                        $altNameNode->appendChild($nameNode);
+                    }
+                }
+            }
+
+            $contributorsNode->appendChild($personNameNode);
+            $isFirst = false;
+        }
+
+        return $contributorsNode;
     }
 
     /**
