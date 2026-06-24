@@ -20,9 +20,11 @@ use APP\plugins\generic\crossref\CrossrefExportDeployment;
 use APP\publication\Publication;
 use PKP\context\Context;
 use DOMDocument;
+use DOMElement;
 use PKP\core\Dispatcher;
 use PKP\i18n\LocaleConversion;
 use PKP\submission\PKPSubmission;
+use PKP\filter\FilterGroup;
 use Illuminate\Support\Enumerable;
 
 class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\NativeExportFilter
@@ -32,10 +34,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Constructor
-     *
-     * @param \PKP\filter\FilterGroup $filterGroup
      */
-    public function __construct($filterGroup)
+    public function __construct(FilterGroup $filterGroup)
     {
         $this->setDisplayName('Crossref XML preprint export');
         parent::__construct($filterGroup);
@@ -48,10 +48,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
      * @see Filter::process()
      *
      * @param array $pubObjects Array of Issues or Submissions
-     *
-     * @return \DOMDocument
      */
-    public function &process(&$pubObjects)
+    public function &process(&$pubObjects): DOMDocument
     {
         // Create the XML document
         $doc = new DOMDocument('1.0', 'utf-8');
@@ -136,12 +134,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Create and return the root node 'doi_batch'.
-     *
-     * @param \DOMDocument $doc
-     *
-     * @return \DOMElement
      */
-    public function createRootNode($doc)
+    public function createRootNode(DOMDocument $doc): DOMElement
     {
         /** @var CrossrefExportDeployment $deployment */
         $deployment = $this->getDeployment();
@@ -157,12 +151,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Create and return the head node 'head'.
-     *
-     * @param \DOMDocument $doc
-     *
-     * @return \DOMElement
      */
-    public function createHeadNode($doc)
+    public function createHeadNode(DOMDocument $doc): DOMElement
     {
         /** @var CrossrefExportDeployment $deployment */
         $deployment = $this->getDeployment();
@@ -190,15 +180,9 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Create and return the posted content node 'posted_content'.
-     *
-     * @param \DOMDocument $doc
-     * @param Publication $publication
-     *
-     * @return \DOMElement
      */
-    public function createPostedContentNode($doc, $publication, $submission)
+    public function createPostedContentNode(DOMDocument $doc, Publication $publication, PKPSubmission $submission): DOMElement
     {
-        assert($publication instanceof Publication);
         /** @var CrossrefExportDeployment $deployment */
         $deployment = $this->getDeployment();
         $request = Application::get()->getRequest();
@@ -266,7 +250,7 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         return $postedContentNode;
     }
 
-    public function createContributorsNode($doc, $publication)
+    public function createContributorsNode(DOMDocument $doc, Publication $publication)
     {
         $deployment = $this->getDeployment();
         $authors = $publication->getData('authors');
@@ -353,13 +337,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Create and return the posted date node 'posted_date'.
-     *
-     * @param \DOMDocument $doc
-     * @param string $objectPostedDate
-     *
-     * @return \DOMElement
      */
-    public function createPostedDateNode($doc, $objectPostedDate)
+    public function createPostedDateNode(DOMDocument $doc, string $objectPostedDate): DOMElement
     {
         $deployment = $this->getDeployment();
         $postedDate = strtotime($objectPostedDate);
@@ -376,14 +355,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Create and return the DOI data node 'doi_data'.
-     *
-     * @param \DOMDocument $doc
-     * @param string $doi
-     * @param string $url
-     *
-     * @return \DOMElement
      */
-    public function createDOIDataNode($doc, $doi, $url)
+    public function createDOIDataNode(DOMDocument $doc, string $doi, string $url): DOMElement
     {
         $deployment = $this->getDeployment();
         $doiDataNode = $doc->createElementNS($deployment->getNamespace(), 'doi_data');
@@ -392,7 +365,7 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         return $doiDataNode;
     }
 
-    public function appendCrossmarkNode($doc, $parentNode, $datePublished)
+    public function appendCrossmarkNode(DOMDocument $doc, DOMElement $parentNode, string $datePublished): void
     {
         $deployment = $this->getDeployment();
         $context = $deployment->getContext();
@@ -412,7 +385,7 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         $parentNode->appendChild($crossmarkNode);
     }
 
-    public function appendRelationships($doc, $parentNode, $publication)
+    public function appendRelationships(DOMDocument $doc, DOMElement $parentNode, Publication $publication): void
     {
         $deployment = $this->getDeployment();
 
@@ -433,13 +406,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Create and return the parent DOI relation node.
-     *
-     * @param \DOMDocument $doc
-     * @param string $parentDoi
-     *
-     * @return \DOMElement
      */
-    public function createParentDoiNode($doc, $parentDoi)
+    public function createParentDoiNode(DOMDocument $doc, string $parentDoi): DOMElement
     {
         /** @var CrossrefExportDeployment $deployment */
         $deployment = $this->getDeployment();
@@ -454,13 +422,8 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Create and return the VOR DOI relation node.
-     *
-     * @param \DOMDocument $doc
-     * @param string $vorDoi
-     *
-     * @return \DOMElement
      */
-    public function createVorDoiNode($doc, $vorDoi)
+    public function createVorDoiNode(DOMDocument $doc, string $vorDoi): DOMElement
     {
         /** @var CrossrefExportDeployment $deployment */
         $deployment = $this->getDeployment();
@@ -475,8 +438,6 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
 
     /**
      * Helper to ensure dispatcher is available even when called from CLI tools
-     *
-     *
      */
     protected function _getDispatcher(Request $request): Dispatcher
     {
