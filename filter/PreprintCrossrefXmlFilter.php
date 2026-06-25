@@ -231,9 +231,6 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         }
 
         if ($this->doiVersioningEnabled && $this->versionsDois) {
-            // crossmark updates
-            $this->appendCrossmarkNode($doc, $postedContentNode, $publication->getData('datePublished'));
-
             // rel:program
             $this->appendRelationships($doc, $postedContentNode, $publication);
         }
@@ -363,26 +360,6 @@ class PreprintCrossrefXmlFilter extends \PKP\plugins\importexport\native\filter\
         $doiDataNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'doi', htmlspecialchars($doi, ENT_COMPAT, 'UTF-8')));
         $doiDataNode->appendChild($doc->createElementNS($deployment->getNamespace(), 'resource', htmlspecialchars($url, ENT_COMPAT, 'UTF-8')));
         return $doiDataNode;
-    }
-
-    public function appendCrossmarkNode(DOMDocument $doc, DOMElement $parentNode, string $datePublished): void
-    {
-        $deployment = $this->getDeployment();
-        $context = $deployment->getContext();
-        $plugin = $deployment->getPlugin();
-
-        $crossmarkPolicyDoi = $plugin->getSetting($context->getId(), 'updatePolicyDoi');
-        $crossmarkNode = $doc->createElementNS($deployment->getNamespace(), 'crossmark');
-        $crossmarkNode->appendChild($node = $doc->createElementNS($deployment->getNamespace(), 'crossmark_policy', htmlspecialchars($crossmarkPolicyDoi, ENT_COMPAT, 'UTF-8')));
-        $updatesNode = $doc->createElementNS($deployment->getNamespace(), 'updates');
-        foreach ($this->versionsDois as $versionDoi) {
-            $updateNode = $doc->createElementNS($deployment->getNamespace(), 'update', htmlspecialchars($versionDoi, ENT_COMPAT, 'UTF-8'));
-            $updateNode->setAttribute('type', 'new_version');
-            $updateNode->setAttribute('date', $datePublished);
-            $updatesNode->appendChild($updateNode);
-        }
-        $crossmarkNode->appendChild($updatesNode);
-        $parentNode->appendChild($crossmarkNode);
     }
 
     public function appendRelationships(DOMDocument $doc, DOMElement $parentNode, Publication $publication): void
