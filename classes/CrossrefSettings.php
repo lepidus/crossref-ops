@@ -49,10 +49,6 @@ class CrossrefSettings extends \PKP\doi\RegistrationAgencySettings
                 ],
                 'testMode' => (object) [
                     'type' => 'boolean',
-                ],
-                'updatePolicyDoi' => (object) [
-                    'type' => 'string',
-                    'validation' => ['nullable', "regex:/^\\d+(.\\d+)+\\//"],
                 ]
             ],
         ];
@@ -63,7 +59,7 @@ class CrossrefSettings extends \PKP\doi\RegistrationAgencySettings
      */
     public function getFields(Context $context): array
     {
-        $settingsFields = [
+        return [
             new FieldHTML('preamble', [
                 'label' => __('plugins.importexport.crossref.settings'),
                 'description' => $this->_getPreambleText(),
@@ -102,22 +98,6 @@ class CrossrefSettings extends \PKP\doi\RegistrationAgencySettings
                 'value' => (bool) $this->agencyPlugin->getSetting($context->getId(), 'testMode'),
             ]),
         ];
-
-        if ($context->getData(Context::SETTING_DOI_VERSIONING)) {
-            $updatePolicyDoiField = [new FieldText('updatePolicyDoi', [
-                'label' => __('plugins.importexport.crossref.settings.form.updatePolicy'),
-                'description' => __('plugins.importexport.crossref.settings.form.updatePolicy.description'),
-                'isRequired' => true,
-                'value' => $this->agencyPlugin->getSetting($context->getId(), 'updatePolicyDoi'),
-            ])];
-            $settingsFields = array_merge(
-                array_slice($settingsFields, 0, 3, true),
-                $updatePolicyDoiField,
-                array_slice($settingsFields, 3, count($settingsFields) - 3, true)
-            );
-        }
-
-        return $settingsFields;
     }
 
     protected function _getPreambleText(): string
